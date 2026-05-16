@@ -88,6 +88,7 @@ from ..user_state import (
     PENDING_WORKTREE_REPO,
     PENDING_WORKTREE_SUBDIR,
 )
+from . import topic_orchestration
 
 if TYPE_CHECKING:
     from telegram.ext import ContextTypes
@@ -847,7 +848,7 @@ async def _abort_topic_creation(
     clear_worktree_state(context.user_data)
 
 
-async def _create_window_and_bind(
+async def _create_window_and_bind(  # noqa: PLR0915
     query: CallbackQuery,
     user_id: int,
     selected_path: str,
@@ -875,6 +876,13 @@ async def _create_window_and_bind(
     if not success:
         await _abort_topic_creation(query, message, context)
         return
+
+    # Race-guard: tag this window as "directory flow in progress" BEFORE any
+    # subsequent await. The provider's SessionStart hook fires inside the new
+    # tmux pane within seconds; the SessionMonitor's 1s poll cycle would
+    # otherwise see an unbound window and auto-create a duplicate Telegram
+    # topic before bind_thread() runs below. See MC-2967 for full repro.
+    topic_orchestration.register_pending_creation(created_wid)
 
     user_preferences.update_user_mru(user_id, selected_path)
     session_manager.set_window_origin(created_wid, CCGRAM_CREATED_WINDOW_ORIGIN)
@@ -912,6 +920,11 @@ async def _create_window_and_bind(
         chat = query_message.chat if query_message else None
         if chat and chat.type in ("group", "supergroup"):
             thread_router.set_group_chat_id(user_id, pending_thread_id, chat.id)
+        # Bind is durable now — handle_new_window's `_is_window_already_bound`
+        # check will find the binding, so the pending-creation race-guard can
+        # be released. (Late SessionMonitor polls are still safe: they will
+        # take the already-bound branch instead.)
+        topic_orchestration.clear_pending_creation(created_wid)
 
     provider = provider_registry.get(provider_name)
     if approval_mode == "yolo" and provider.capabilities.has_yolo_confirmation:
