@@ -295,7 +295,9 @@ def resolve_launch_command(
         command = build_hardened_gemini_launch_command(command)
 
     if provider == "antigravity" and not override:
-        from ccgram.providers.antigravity import build_hardened_antigravity_launch_command
+        from ccgram.providers.antigravity import (
+            build_hardened_antigravity_launch_command,
+        )
 
         command = build_hardened_antigravity_launch_command(command)
 

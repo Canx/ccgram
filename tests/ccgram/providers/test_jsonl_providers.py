@@ -14,7 +14,6 @@ from ccgram.providers.codex import (
     _format_codex_tool_result,
     _resolve_pending,
 )
-from ccgram.providers.antigravity import AntigravityProvider
 from ccgram.providers.gemini import (
     GeminiProvider,
     _box_is_interactive,

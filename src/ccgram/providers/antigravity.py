@@ -26,12 +26,11 @@ import re
 import shlex
 import time
 import tomllib
-from typing import Any, cast
+from typing import Any
 
 from ccgram.providers._jsonl import JsonlProvider
 from ccgram.providers.base import (
     AgentMessage,
-    ContentType,
     DiscoveredCommand,
     MessageRole,
     ProviderCapabilities,
@@ -115,20 +114,18 @@ _ANTIGRAVITY_BOX_PREFIX = r"[\s│┃║|]*"
 ANTIGRAVITY_UI_PATTERNS: list[UIPattern] = [
     UIPattern(
         name="SelectionUI",
-        top=(
-            re.compile(rf"^{_ANTIGRAVITY_BOX_PREFIX}Select\b"),
-        ),
+        top=(re.compile(rf"^{_ANTIGRAVITY_BOX_PREFIX}Select\b"),),
         bottom=(
             re.compile(rf"^{_ANTIGRAVITY_BOX_PREFIX}\(Press Esc to (close|cancel)\)"),
-            re.compile(rf"^{_ANTIGRAVITY_BOX_PREFIX}\(Press Enter to (confirm|select)\)"),
+            re.compile(
+                rf"^{_ANTIGRAVITY_BOX_PREFIX}\(Press Enter to (confirm|select)\)"
+            ),
         ),
         min_gap=1,
     ),
     UIPattern(
         name="PermissionPrompt",
-        top=(
-            re.compile(rf"^{_ANTIGRAVITY_BOX_PREFIX}Action Required"),
-        ),
+        top=(re.compile(rf"^{_ANTIGRAVITY_BOX_PREFIX}Action Required"),),
         bottom=(
             re.compile(r"(?i)\(esc"),
             re.compile(rf"^{_ANTIGRAVITY_BOX_PREFIX}\d+\.\s+No\b"),
@@ -154,7 +151,9 @@ def _runtime_command_basename(pane_current_command: str) -> str:
 
 def needs_pane_title_for_detection(pane_current_command: str) -> bool:
     """Return True when runtime detection needs pane-title context."""
-    return _runtime_command_basename(pane_current_command) in _ANTIGRAVITY_WRAPPER_COMMANDS
+    return (
+        _runtime_command_basename(pane_current_command) in _ANTIGRAVITY_WRAPPER_COMMANDS
+    )
 
 
 def detect_antigravity_from_runtime(pane_current_command: str, pane_title: str) -> bool:
@@ -172,13 +171,7 @@ def build_hardened_antigravity_launch_command(command: str) -> str:
     try:
         atomic_write_json(
             settings_path,
-            {
-                "tools": {
-                    "shell": {
-                        "enableInteractiveShell": False
-                    }
-                }
-            },
+            {"tools": {"shell": {"enableInteractiveShell": False}}},
         )
     except OSError:
         return command
@@ -233,11 +226,14 @@ def _find_matching_pending_tool(entry_type: str, pending: dict[str, str]) -> str
     normalized_type = entry_type.replace("_", "").lower()
     for tool_use_id, tool_name in pending.items():
         normalized_name = tool_name.replace("_", "").lower()
-        if (normalized_name in normalized_type) or (normalized_type in normalized_name) or (normalized_name[:4] == normalized_type[:4]):
+        if (
+            (normalized_name in normalized_type)
+            or (normalized_type in normalized_name)
+            or (normalized_name[:4] == normalized_type[:4])
+        ):
             return tool_use_id
     # Fallback to the oldest pending tool if no match
     return next(iter(pending.keys()), None)
-
 
 
 def _summarize_tool_args(args: Any) -> str:
@@ -446,7 +442,7 @@ class AntigravityProvider(JsonlProvider):
             return "--resume latest"
         return ""
 
-    def parse_transcript_entries(
+    def parse_transcript_entries(  # noqa: C901, PLR0912
         self,
         entries: list[dict[str, Any]],
         pending_tools: dict[str, Any],
@@ -461,7 +457,11 @@ class AntigravityProvider(JsonlProvider):
             source = entry.get("source", "")
 
             # 1. User turn (new & old formats)
-            if msg_type == "USER_INPUT" or source == "USER_EXPLICIT" or msg_type == "user":
+            if (
+                msg_type == "USER_INPUT"
+                or source == "USER_EXPLICIT"
+                or msg_type == "user"
+            ):
                 content_text = _clean_user_content(_entry_text(entry))
                 if content_text:
                     messages.append(
@@ -477,10 +477,20 @@ class AntigravityProvider(JsonlProvider):
             # Check if this is an assistant or planner turn
             is_assistant = (
                 msg_type == "PLANNER_RESPONSE"
-                or (source == "MODEL" and msg_type in ("PLANNER_RESPONSE", "gemini", "antigravity", "info", "error", ""))
+                or (
+                    source == "MODEL"
+                    and msg_type
+                    in (
+                        "PLANNER_RESPONSE",
+                        "gemini",
+                        "antigravity",
+                        "info",
+                        "error",
+                        "",
+                    )
+                )
                 or (msg_type in _ANTIGRAVITY_ROLE_MAP and msg_type != "user")
             )
-
 
             if is_assistant:
                 # A. Parse old-format tool calls
@@ -510,7 +520,8 @@ class AntigravityProvider(JsonlProvider):
                                 content_type="tool_use",
                                 tool_use_id=tool_use_id,
                                 tool_name=tool_name,
-                                timestamp=entry.get("created_at") or entry.get("timestamp"),
+                                timestamp=entry.get("created_at")
+                                or entry.get("timestamp"),
                             )
                         )
                         result_text = _extract_tool_result_text(tc)
@@ -522,7 +533,8 @@ class AntigravityProvider(JsonlProvider):
                                     content_type="tool_result",
                                     tool_use_id=tool_use_id,
                                     tool_name=tool_name,
-                                    timestamp=entry.get("created_at") or entry.get("timestamp"),
+                                    timestamp=entry.get("created_at")
+                                    or entry.get("timestamp"),
                                 )
                             )
                             if tool_use_id:
@@ -537,7 +549,7 @@ class AntigravityProvider(JsonlProvider):
                         tool_name = tc.get("name") or "unknown"
                         step_idx = entry.get("step_index", "0")
                         tool_use_id = f"step-{step_idx}-{tool_name}"
-                        
+
                         summary = _summarize_tool_args(tc.get("args"))
                         tool_use_text = (
                             f"**{tool_name}** `{summary}`"
@@ -552,7 +564,8 @@ class AntigravityProvider(JsonlProvider):
                                 content_type="tool_use",
                                 tool_use_id=tool_use_id,
                                 tool_name=tool_name,
-                                timestamp=entry.get("created_at") or entry.get("timestamp"),
+                                timestamp=entry.get("created_at")
+                                or entry.get("timestamp"),
                             )
                         )
 
@@ -570,7 +583,10 @@ class AntigravityProvider(JsonlProvider):
                 continue
 
             # 2. Tool result (new format: msg_type represents the tool name in uppercase, e.g. LIST_DIRECTORY)
-            if (source in ("MODEL", "SYSTEM") or msg_type) and msg_type not in ("CONVERSATION_HISTORY", ""):
+            if (source in ("MODEL", "SYSTEM") or msg_type) and msg_type not in (
+                "CONVERSATION_HISTORY",
+                "",
+            ):
                 tool_use_id = _find_matching_pending_tool(msg_type, pending)
                 if tool_use_id:
                     tool_name = pending.pop(tool_use_id)
@@ -583,7 +599,8 @@ class AntigravityProvider(JsonlProvider):
                                 content_type="tool_result",
                                 tool_use_id=tool_use_id,
                                 tool_name=tool_name,
-                                timestamp=entry.get("created_at") or entry.get("timestamp"),
+                                timestamp=entry.get("created_at")
+                                or entry.get("timestamp"),
                             )
                         )
                     continue
@@ -594,7 +611,9 @@ class AntigravityProvider(JsonlProvider):
         """Check if this entry is a human turn."""
         msg_type = entry.get("type", "")
         source = entry.get("source", "")
-        return msg_type == "USER_INPUT" or source == "USER_EXPLICIT" or msg_type == "user"
+        return (
+            msg_type == "USER_INPUT" or source == "USER_EXPLICIT" or msg_type == "user"
+        )
 
     def parse_history_entry(self, entry: dict[str, Any]) -> AgentMessage | None:
         """Parse a single transcript entry for history display."""
@@ -614,7 +633,11 @@ class AntigravityProvider(JsonlProvider):
 
         is_assistant = (
             msg_type == "PLANNER_RESPONSE"
-            or (source == "MODEL" and msg_type in ("PLANNER_RESPONSE", "gemini", "antigravity", "info", "error", ""))
+            or (
+                source == "MODEL"
+                and msg_type
+                in ("PLANNER_RESPONSE", "gemini", "antigravity", "info", "error", "")
+            )
             or (msg_type in _ANTIGRAVITY_ROLE_MAP and msg_type != "user")
         )
         if is_assistant:
@@ -687,7 +710,7 @@ class AntigravityProvider(JsonlProvider):
             )
         return None
 
-    def discover_transcript(
+    def discover_transcript(  # noqa: C901
         self,
         cwd: str,
         window_key: str,
@@ -704,7 +727,7 @@ class AntigravityProvider(JsonlProvider):
                 # Read all lines from history.jsonl and reverse them (newest first)
                 with open(history_path, "r", encoding="utf-8") as f:
                     lines = f.readlines()
-                
+
                 for line in reversed(lines):
                     if not line.strip():
                         continue
@@ -712,13 +735,16 @@ class AntigravityProvider(JsonlProvider):
                         data = json.loads(line)
                     except json.JSONDecodeError:
                         continue
-                    
+
                     line_workspace = data.get("workspace")
                     if not line_workspace:
                         continue
-                    
+
                     try:
-                        if Path(line_workspace).resolve() == Path(resolved_cwd).resolve():
+                        if (
+                            Path(line_workspace).resolve()
+                            == Path(resolved_cwd).resolve()
+                        ):
                             conversation_id = data.get("conversationId")
                             if conversation_id:
                                 transcript_path = (
@@ -737,14 +763,14 @@ class AntigravityProvider(JsonlProvider):
                                         mtime = transcript_path.stat().st_mtime
                                         if time.time() - mtime > max_age:
                                             continue
-                                    
+
                                     return SessionStartEvent(
                                         session_id=conversation_id,
                                         cwd=resolved_cwd,
                                         transcript_path=str(transcript_path),
                                         window_key=window_key,
                                     )
-                    except Exception:
+                    except Exception:  # noqa: BLE001
                         continue
             except OSError:
                 pass
@@ -804,9 +830,8 @@ class AntigravityProvider(JsonlProvider):
             )
 
         # 2. Check title for specific interactive state hints
-        if pane_title:
-            if "\u270b" in pane_title or "Action Required" in pane_title:
-                action_required = True
+        if pane_title and ("\u270b" in pane_title or "Action Required" in pane_title):
+            action_required = True
 
         # 3. Check raw pane content for "Action Required" text
         if not action_required and "Action Required" in pane_text:
@@ -837,7 +862,7 @@ class AntigravityProvider(JsonlProvider):
         except OSError:
             return None
 
-        short_id = session_id[:8] if len(session_id) > 10 else session_id
+        short_id = session_id[:8] if len(session_id) > 10 else session_id  # noqa: PLR2004
 
         return (
             f"🛸 [{display_name}] Antigravity session active.\n"

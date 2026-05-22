@@ -138,7 +138,6 @@ def is_local_qualified(qualified_id: str) -> bool:
     return session_prefix == tmux_session_name()
 
 
-
 def atomic_write_json(path: Path, data: Any, indent: int = 2) -> None:
     """Write JSON data to a file atomically.
 

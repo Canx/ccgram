@@ -33,7 +33,9 @@ class TestDetectProviderFromCommand:
             pytest.param("Claude", "claude", id="case-insensitive-claude"),
             pytest.param("CODEX", "codex", id="uppercase-codex"),
             pytest.param("  claude  ", "claude", id="whitespace-padded"),
-            pytest.param("/home/ruben/.local/bin/agy", "antigravity", id="full-path-agy"),
+            pytest.param(
+                "/home/ruben/.local/bin/agy", "antigravity", id="full-path-agy"
+            ),
         ],
     )
     def test_known_commands(self, command: str, expected: str) -> None:

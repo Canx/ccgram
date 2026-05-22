@@ -186,6 +186,7 @@ async def probe_topic_existence(client: TelegramClient) -> None:
     """Probe all bound topics via Telegram API; detect deleted topics."""
     for user_id, thread_id, wid in list(thread_router.iter_thread_bindings()):
         from ccgram.utils import is_local_qualified
+
         if not is_local_qualified(wid):
             continue
         if lifecycle_strategy.should_skip_probe(wid):

@@ -154,4 +154,3 @@ async def test_complete_message_enqueues_content(bot, mock_deps):
 async def test_user_role_message_is_skipped(bot, mock_deps):
     await handle_new_message(_make_msg(role="user"), bot)
     mock_deps["eq"].assert_not_called()
-

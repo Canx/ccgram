@@ -27,7 +27,6 @@ from telegram import (
 from ...telegram_client import TelegramClient
 from ...thread_router import thread_router
 from ...topic_state_registry import topic_state
-from ...utils import tmux_session_name
 from ..callback_registry import register
 from .msg_delivery import delivery_strategy
 from ..messaging_pipeline.message_sender import (
@@ -85,6 +84,7 @@ def _is_local_qualified(qualified_id: str) -> bool:
     only when their session prefix matches ``tmux_session_name()``.
     """
     from ccgram.utils import is_local_qualified
+
     return is_local_qualified(qualified_id)
 
 

@@ -12,7 +12,6 @@ from ccgram.providers.antigravity import (
     detect_antigravity_from_runtime,
     needs_pane_title_for_detection,
 )
-from ccgram.providers.base import AgentMessage, SessionStartEvent, StatusUpdate
 
 
 def _write_antigravity_session(
@@ -188,7 +187,9 @@ class TestAntigravityTranscriptParsing:
                 ],
             }
         ]
-        messages_res, pending_res = provider.parse_transcript_entries(entries_with_result, pending)
+        messages_res, pending_res = provider.parse_transcript_entries(
+            entries_with_result, pending
+        )
         assert "tc-1" not in pending_res
         assert len(messages_res) == 3
         assert messages_res[0].content_type == "tool_use"
@@ -228,7 +229,7 @@ class TestAntigravityTranscriptParsing:
                 "source": "MODEL",
                 "type": "PLANNER_RESPONSE",
                 "content": "I found two files.",
-            }
+            },
         ]
 
         messages, pending = provider.parse_transcript_entries(entries, {})
@@ -299,21 +300,27 @@ class TestAntigravityTerminalStatus:
 
     def test_pane_title_action_required(self) -> None:
         provider = AntigravityProvider()
-        status = provider.parse_terminal_status("generic output", pane_title="Action Required ✋")
+        status = provider.parse_terminal_status(
+            "generic output", pane_title="Action Required ✋"
+        )
         assert status is not None
         assert status.is_interactive is True
         assert status.ui_type == "PermissionPrompt"
 
     def test_pane_content_action_required_fallback(self) -> None:
         provider = AntigravityProvider()
-        status = provider.parse_terminal_status("Some error happened and Action Required message printed", pane_title="")
+        status = provider.parse_terminal_status(
+            "Some error happened and Action Required message printed", pane_title=""
+        )
         assert status is not None
         assert status.is_interactive is True
         assert status.ui_type == "PermissionPrompt"
 
     def test_normal_output_returns_none(self) -> None:
         provider = AntigravityProvider()
-        status = provider.parse_terminal_status("Just normal text\nWaiting for something\n", pane_title="")
+        status = provider.parse_terminal_status(
+            "Just normal text\nWaiting for something\n", pane_title=""
+        )
         assert status is None
 
 
@@ -327,7 +334,9 @@ class TestAntigravityRuntimeDetection:
     def test_detects_from_runtime(self) -> None:
         assert detect_antigravity_from_runtime("bun run", "🛸 workspace") is True
         assert detect_antigravity_from_runtime("node cli.js", "Gemini ✦") is False
-        assert detect_antigravity_from_runtime("python3 app.py", "🛸 workspace") is False
+        assert (
+            detect_antigravity_from_runtime("python3 app.py", "🛸 workspace") is False
+        )
 
 
 class TestAntigravityDiscoverTranscript:
@@ -414,28 +423,43 @@ class TestAntigravityDiscoverTranscript:
         history_dir = tmp_path / ".gemini" / "antigravity-cli"
         history_dir.mkdir(parents=True, exist_ok=True)
         history_file = history_dir / "history.jsonl"
-        
+
         # Write history entries
         history_file.write_text(
-            json.dumps({"display": "another query", "workspace": "/some/other", "conversationId": "anti-other-id"}) + "\n" +
-            json.dumps({"display": "hello", "workspace": project, "conversationId": "anti-uuid-history"}) + "\n"
+            json.dumps(
+                {
+                    "display": "another query",
+                    "workspace": "/some/other",
+                    "conversationId": "anti-other-id",
+                }
+            )
+            + "\n"
+            + json.dumps(
+                {
+                    "display": "hello",
+                    "workspace": project,
+                    "conversationId": "anti-uuid-history",
+                }
+            )
+            + "\n"
         )
-        
+
         # Write matching transcript file
-        transcript_dir = history_dir / "brain" / "anti-uuid-history" / ".system_generated" / "logs"
+        transcript_dir = (
+            history_dir / "brain" / "anti-uuid-history" / ".system_generated" / "logs"
+        )
         transcript_dir.mkdir(parents=True, exist_ok=True)
         transcript_file = transcript_dir / "transcript.jsonl"
         transcript_file.write_text("{}\n")
-        
+
         provider = AntigravityProvider()
         with patch.object(Path, "home", return_value=tmp_path):
             event = provider.discover_transcript(project, "ccgram:@7")
-        
+
         assert event is not None
         assert event.session_id == "anti-uuid-history"
         assert event.cwd == project
         assert event.transcript_path == str(transcript_file)
-
 
 
 class TestAntigravityStatusSnapshot:
@@ -471,4 +495,6 @@ class TestAntigravityStatusSnapshot:
         provider = AntigravityProvider()
         assert provider.has_output_since(str(transcript), 0) is True
         assert provider.has_output_since(str(transcript), 100) is False
-        assert provider.has_output_since("/tmp/nonexistent-transcript.jsonl", 0) is False
+        assert (
+            provider.has_output_since("/tmp/nonexistent-transcript.jsonl", 0) is False
+        )
