@@ -852,7 +852,7 @@ class AntigravityProvider(JsonlProvider):
         self,
         transcript_path: str,
         *,
-        display_name: str,
+        display_name: str = "",
         session_id: str = "",
         cwd: str = "",
     ) -> str | None:
