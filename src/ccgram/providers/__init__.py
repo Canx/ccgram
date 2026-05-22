@@ -53,7 +53,7 @@ def _ensure_registered() -> None:
     global _registered
     if _registered:
         return
-    # Lazy: provider classes register against the registry at import; defer until the registry factory runs
+    from ccgram.providers.antigravity import AntigravityProvider
     from ccgram.providers.claude import ClaudeProvider
 
     # Lazy: provider classes register against the registry at import; defer until the registry factory runs
@@ -68,6 +68,7 @@ def _ensure_registered() -> None:
     # Lazy: provider classes register against the registry at import; defer until the registry factory runs
     from ccgram.providers.shell import ShellProvider
 
+    registry.register("antigravity", AntigravityProvider)
     registry.register("claude", ClaudeProvider)
     registry.register("codex", CodexProvider)
     registry.register("gemini", GeminiProvider)
@@ -141,9 +142,9 @@ def detect_provider_from_command(pane_current_command: str) -> str:
     # Match basename only (first token) to avoid false positives
     # from paths like /home/claude/bin/vim
     basename = os.path.basename(cmd.split()[0])
-    for name in ("claude", "codex", "gemini", "pi"):
+    for name in ("claude", "codex", "gemini", "pi", "antigravity", "agy"):
         if basename == name or basename.startswith(name + "-"):
-            return name
+            return "antigravity" if name == "agy" else name
 
     # Lazy: providers.shell pulls in shell_infra (prompt-marker machinery
     # + readline lookups) at import; only load when we have to fall
@@ -177,7 +178,7 @@ def detect_provider_from_transcript_path(transcript_path: str) -> str:
     if _CLAUDE_PROJECTS_RE.search(normalized):
         return "claude"
     if "/.gemini/" in normalized and "/chats/" in normalized:
-        return "gemini"
+        return "antigravity"
     if "/.pi/agent/sessions/" in normalized:
         return "pi"
     return ""
@@ -290,6 +291,11 @@ def resolve_launch_command(
         from ccgram.providers.gemini import build_hardened_gemini_launch_command
 
         command = build_hardened_gemini_launch_command(command)
+
+    if provider == "antigravity" and not override:
+        from ccgram.providers.antigravity import build_hardened_antigravity_launch_command
+
+        command = build_hardened_antigravity_launch_command(command)
 
     if approval_mode.lower() != _APPROVAL_MODE_YOLO:
         return command
