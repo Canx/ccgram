@@ -67,7 +67,7 @@ async def status_poll_loop(bot: "Bot") -> None:
             await run_periodic_tasks(client, all_windows, timers)
 
             for user_id, thread_id, wid in list(thread_router.iter_thread_bindings()):
-                from ..utils import is_local_qualified
+                from ccgram.utils import is_local_qualified
                 if not is_local_qualified(wid):
                     continue
 
