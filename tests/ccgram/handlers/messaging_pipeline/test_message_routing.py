@@ -149,3 +149,9 @@ async def test_complete_message_enqueues_content(bot, mock_deps):
     assert kwargs["user_id"] == 100
     assert kwargs["window_id"] == "@5"
     assert kwargs["thread_id"] == 42
+
+
+async def test_user_role_message_is_skipped(bot, mock_deps):
+    await handle_new_message(_make_msg(role="user"), bot)
+    mock_deps["eq"].assert_not_called()
+

@@ -224,7 +224,8 @@ DEFAULT_LAYOUTS: dict[str, ToolbarLayout] = {
         buttons=(
             ("screen", "ctrlc", "live"),
             ("mode", "yolo", "esc"),
-            ("send", "enter", "close"),
+            ("up", "enter", "down"),
+            ("last", "getfile", "close"),
         ),
     ),
     "pi": ToolbarLayout(

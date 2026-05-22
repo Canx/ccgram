@@ -44,6 +44,10 @@ async def handle_new_message(msg: NewMessage, client: TelegramClient) -> None:  
         len(msg.text),
     )
 
+    if msg.role == "user":
+        logger.info("Skipping user message reflection: session=%s", msg.session_id)
+        return
+
     active_users = session_query.find_users_for_session(msg.session_id)
 
     if not active_users:

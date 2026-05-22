@@ -177,8 +177,10 @@ def detect_provider_from_transcript_path(transcript_path: str) -> str:
         return "codex"
     if _CLAUDE_PROJECTS_RE.search(normalized):
         return "claude"
-    if "/.gemini/" in normalized and "/chats/" in normalized:
+    if "/antigravity-cli/" in normalized:
         return "antigravity"
+    if "/.gemini/" in normalized and "/chats/" in normalized:
+        return "gemini"
     if "/.pi/agent/sessions/" in normalized:
         return "pi"
     return ""

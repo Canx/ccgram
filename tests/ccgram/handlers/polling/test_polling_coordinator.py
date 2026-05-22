@@ -67,6 +67,10 @@ def _patch_loop_deps(
         "log_throttled": patch(
             "ccgram.handlers.polling.polling_coordinator.log_throttled"
         ),
+        "is_local_qualified": patch(
+            "ccgram.utils.is_local_qualified",
+            return_value=True,
+        ),
     }
 
     ctx = _LoopCtx()
